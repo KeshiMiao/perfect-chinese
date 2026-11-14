@@ -1,5 +1,7 @@
-# # 完美中文
+# 完美中文
 完美中文是一款用于汉化 Blender 插件的插件。
+
+> 正在重构，设计见 [doc/requirements.md](doc/requirements.md)。
 #### # 目前完成的功能
 - [x] 全局翻译: 完善部分 Blender 的翻译
 - [x] 一键翻译: 一键切换中英文的快捷按钮
