@@ -145,6 +145,23 @@ class PC_OT_toggle_expanded(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class PC_OT_list_page(bpy.types.Operator):
+    bl_idname = "pc.list_page"
+    bl_label = "翻译列表翻页"
+    bl_description = "切换到翻译列表的上一页或下一页"
+
+    delta: bpy.props.IntProperty(default=1)
+
+    def execute(self, context):
+        prefs = env.addon_prefs()
+        if prefs is None:
+            return {"CANCELLED"}
+        from .list import turn_page
+
+        turn_page(prefs, self.delta)
+        return {"FINISHED"}
+
+
 class PC_OT_extract_texts(bpy.types.Operator):
     bl_idname = "pc.extract_texts"
     bl_label = "抽取插件文本"
@@ -368,6 +385,7 @@ _classes = (
     PC_OT_toggle,
     PC_OT_uninstall,
     PC_OT_toggle_expanded,
+    PC_OT_list_page,
     PC_OT_extract_texts,
     PC_OT_preview_texts,
     PC_OT_toggle_language,

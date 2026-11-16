@@ -69,6 +69,12 @@ class PackageTests(unittest.TestCase):
         self.assertEqual(translations[""]["Hello"], "你好")
         self.assertNotIn("Bye", translations[""])
 
+    def test_installed_ids(self):
+        self.assertEqual(packages.installed_ids(), set())
+        entry = make_entry(self.data)
+        packages.install(entry, self.data)
+        self.assertEqual(packages.installed_ids(), {"demo"})
+
     def test_sha_mismatch(self):
         entry = make_entry(self.data)
         with self.assertRaises(packages.PackageError):

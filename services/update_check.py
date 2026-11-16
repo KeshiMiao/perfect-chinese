@@ -3,6 +3,7 @@
 网络请求本身在调用方提供的线程里跑；这里只负责读缓存、写缓存和判定新鲜度。
 """
 
+import os
 import time
 
 from ..core import catalog, net, store
@@ -49,15 +50,32 @@ def is_fresh(meta, now=None):
     return (now if now is not None else time.time()) - fetched_at < CACHE_TTL
 
 
+# 列表每次重绘都会取目录；一千多条时重新读文件并解析要几十毫秒，
+# 这里按文件 mtime/size 缓存解析结果，文件被刷新替换后自动失效。
+_CACHE = {"key": None, "catalog": None}
+
+
 def load_cached():
     path, _ = cache_paths()
-    data = store.read_json(path)
-    if not isinstance(data, dict):
-        return None
     try:
-        return catalog.parse(data)
-    except catalog.CatalogError:
+        info = os.stat(path)
+    except OSError:
+        _CACHE["key"] = None
+        _CACHE["catalog"] = None
         return None
+    key = (path, info.st_mtime_ns, info.st_size)
+    if _CACHE["key"] == key:
+        return _CACHE["catalog"]
+    data = store.read_json(path)
+    parsed = None
+    if isinstance(data, dict):
+        try:
+            parsed = catalog.parse(data)
+        except catalog.CatalogError:
+            parsed = None
+    _CACHE["key"] = key
+    _CACHE["catalog"] = parsed
+    return parsed
 
 
 def refresh(force=False, now=None):

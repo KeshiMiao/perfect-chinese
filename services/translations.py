@@ -308,10 +308,11 @@ def pending_updates():
             and now - cache["stamp"] < UPDATES_CACHE_TTL):
         return list(cache["value"])
     result = []
+    installed = packages.installed_ids()
     for entry in catalog.entries:
         if entry.kind not in ("addon", "blender"):
             continue
-        if not packages.is_installed(entry.id):
+        if entry.id not in installed:
             continue
         if not entry.supports(bpy.app.version):
             continue

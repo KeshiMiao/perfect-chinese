@@ -16,6 +16,11 @@ def _reapply(self, context):
     translations.reapply()
 
 
+def _reset_list_page(self, context):
+    # 搜索词或筛选条件一变，原来停在第几页就没有意义了
+    self.list_page = 1
+
+
 def _cache_get(self):
     # 只读：用不创建目录的 default_path，避免"读一下设置"就把全新安装变成老用户
     return self.cache_stored or store.default_path()
@@ -108,6 +113,14 @@ class PerfectChinesePreferences(bpy.types.AddonPreferences):
         name="搜索翻译",
         description="按原名、中文名、模块名、译者或分类过滤翻译列表",
         default="",
+        update=_reset_list_page,
+    )
+    list_page: bpy.props.IntProperty(
+        name="页码",
+        description="翻译列表当前显示第几页；搜索或筛选变化时回到第一页",
+        default=1,
+        min=1,
+        options={"HIDDEN"},
     )
     expanded_packages: bpy.props.StringProperty(
         description="已展开的条目 id，空格分隔；只用来记住折叠状态",
@@ -118,21 +131,25 @@ class PerfectChinesePreferences(bpy.types.AddonPreferences):
         name="仅启用",
         description="只显示当前已启用的翻译",
         default=False,
+        update=_reset_list_page,
     )
     list_only_downloaded: bpy.props.BoolProperty(
         name="仅下载",
         description="只显示已经下载的翻译",
         default=False,
+        update=_reset_list_page,
     )
     list_only_updatable: bpy.props.BoolProperty(
         name="待更新",
         description="只显示有新内容、可以更新的翻译",
         default=False,
+        update=_reset_list_page,
     )
     list_only_local: bpy.props.BoolProperty(
         name="仅本地",
         description="只显示译者工具产出的本地译文",
         default=False,
+        update=_reset_list_page,
     )
     cache_stored: bpy.props.StringProperty(
         description="缓存区目录的实际存储值；空值时界面回填默认目录",

@@ -76,6 +76,26 @@ def is_installed(package_id):
     return installed_state(package_id) is not None
 
 
+def installed_ids():
+    """已安装包 id 的集合。
+
+    目录里有上千个条目，逐条读状态文件很慢；这里只列一次 packages 目录，
+    再对真正的包目录校验状态。
+    """
+    try:
+        names = os.listdir(store.data_dir("packages"))
+    except OSError:
+        return set()
+    found = set()
+    for name in names:
+        try:
+            if installed_state(name) is not None:
+                found.add(name)
+        except (OSError, PackageError):
+            continue
+    return found
+
+
 def needs_update(package_id, entry):
     state = installed_state(package_id)
     return state is None or state.get("sha256") != str(entry.sha256).lower()

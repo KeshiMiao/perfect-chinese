@@ -7,6 +7,10 @@ from ..core.catalog import matches
 from ..services import translations, workspace
 
 
+# 一页画太多条目会让偏好设置面板明显卡顿，只画当前页。
+PAGE_SIZE = 50
+
+
 def draw_translation_list(layout, prefs):
     catalog = translations.cached_catalog()
     updates = len(translations.pending_updates()) if catalog is not None else 0
@@ -48,11 +52,51 @@ def draw_translation_list(layout, prefs):
         layout.label(text="没有匹配的翻译", icon="INFO")
         return
 
+    total = len(entries)
+    pages = page_count(total)
+    page = clamp_page(prefs.list_page, pages)
+    page_entries = entries[(page - 1) * PAGE_SIZE:page * PAGE_SIZE]
+
+    if pages > 1:
+        _draw_pager(layout, total, page, pages)
+
     installed = workspace.addon_entries()
     expanded = _expanded_set(prefs)
     list_column = layout.column(align=True)
-    for entry in entries:
+    for entry in page_entries:
         _draw_entry(list_column, entry, installed, entry.id in expanded)
+
+    if pages > 1:
+        _draw_pager(layout, total, page, pages)
+
+
+def page_count(total):
+    return max(1, (int(total) + PAGE_SIZE - 1) // PAGE_SIZE)
+
+
+def clamp_page(page, pages):
+    return min(max(int(page or 1), 1), max(1, int(pages)))
+
+
+def turn_page(prefs, delta):
+    """翻页；页码始终夹在有效范围内。"""
+    catalog = translations.cached_catalog()
+    total = len(_visible_entries(catalog, prefs))
+    pages = page_count(total)
+    current = clamp_page(prefs.list_page, pages)
+    prefs.list_page = clamp_page(current + int(delta), pages)
+    return prefs.list_page
+
+
+def _draw_pager(layout, total, page, pages):
+    row = layout.row(align=True)
+    prev_row = row.row(align=True)
+    prev_row.enabled = page > 1
+    prev_row.operator("pc.list_page", text="", icon="TRIA_LEFT").delta = -1
+    row.label(text="第 %d / %d 页 · 共 %d 条" % (page, pages, total))
+    next_row = row.row(align=True)
+    next_row.enabled = page < pages
+    next_row.operator("pc.list_page", text="", icon="TRIA_RIGHT").delta = 1
 
 
 def _filtering(prefs):
@@ -68,31 +112,32 @@ def _filtering(prefs):
 
 def _visible_entries(catalog, prefs):
     """本地译文排最前，其次是补缺包；补缺包没装时只在没有任何搜索/筛选的情况下出现。"""
+    installed = packages.installed_ids()
     entries = [entry for entry in workspace.local_entries()
-               if matches(entry, prefs.search) and _matches_filters(prefs, entry)]
+               if matches(entry, prefs.search) and _matches_filters(prefs, entry, installed)]
     pack = translations.blender_pack_entry()
-    if pack is not None and (packages.is_installed(pack.id) or not _filtering(prefs)):
-        if matches(pack, prefs.search) and _matches_filters(prefs, pack):
+    if pack is not None and (pack.id in installed or not _filtering(prefs)):
+        if matches(pack, prefs.search) and _matches_filters(prefs, pack, installed):
             entries.append(pack)
     if catalog is None:
         return entries
     for entry in catalog.search(prefs.search, kind="addon"):
-        if _matches_filters(prefs, entry):
+        if _matches_filters(prefs, entry, installed):
             entries.append(entry)
     return entries
 
 
-def _matches_filters(prefs, entry):
+def _matches_filters(prefs, entry, installed):
     if prefs.list_only_local and entry.kind != "local":
         return False
     if entry.kind == "local" and (prefs.list_only_downloaded or prefs.list_only_updatable):
         return False
     if prefs.list_only_enabled and not translations.is_enabled(entry.id):
         return False
-    if prefs.list_only_downloaded and not packages.is_installed(entry.id):
+    if prefs.list_only_downloaded and entry.id not in installed:
         return False
     if prefs.list_only_updatable:
-        return packages.is_installed(entry.id) and packages.needs_update(entry.id, entry)
+        return entry.id in installed and packages.needs_update(entry.id, entry)
     return True
 
 
