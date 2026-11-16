@@ -75,7 +75,7 @@ class Extraction:
 
     def _scan_file(self, path):
         try:
-            with open(path, encoding="utf-8", errors="replace") as handle:
+            with open(path, encoding="utf-8-sig", errors="replace") as handle:
                 source = handle.read()
             tree = ast.parse(source, filename=path)
         except SyntaxError as exc:
@@ -359,5 +359,5 @@ def render(entries, module="", source="", name="", header=None, meta=None):
 def load_existing(path):
     if not os.path.exists(path):
         return []
-    with open(path, encoding="utf-8", errors="replace") as handle:
+    with open(path, encoding="utf-8-sig", errors="replace") as handle:
         return po.loads(handle.read())
