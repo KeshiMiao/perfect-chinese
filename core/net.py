@@ -15,7 +15,7 @@ from .env import addon_version
 TIMEOUT = 8
 RETRIES = 2
 BACKOFF = 0.5
-MAX_BYTES = 512 * 1024
+MAX_BYTES = 2 * 1024 * 1024
 FATAL_STATUS = (403, 404, 410)
 USER_AGENT = "perfect-chinese/%s" % addon_version()
 

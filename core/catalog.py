@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from . import versions
 
 SCHEMA_VERSION = 1
-MAX_FILE_BYTES = 512 * 1024
+MAX_FILE_BYTES = 2 * 1024 * 1024
 LOCALE = "zh_HANS"
 ID_PATTERN = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
