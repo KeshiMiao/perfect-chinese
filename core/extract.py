@@ -191,6 +191,8 @@ class _Visitor(ast.NodeVisitor):
     def visit_Call(self, node):
         name = _dotted(node.func)
         short = name.rsplit(".", 1)[-1]
+        # 按钮文字：Blender 画 operator 按钮时按 "Operator" 上下文查，所以 text= 也要登记到该上下文。
+        text_context = "Operator" if name.endswith(".operator") else ""
 
         if short in PGETEXT:
             self._pgettext(node, short)
@@ -201,7 +203,7 @@ class _Visitor(ast.NodeVisitor):
         else:
             for keyword in node.keywords:
                 if keyword.arg == "text":
-                    self._text(node, keyword)
+                    self._text(node, keyword, text_context)
                 elif keyword.arg == "items":
                     self._items(keyword.value)
         self.generic_visit(node)
@@ -245,15 +247,15 @@ class _Visitor(ast.NodeVisitor):
             if keyword.arg == "items":
                 self._items(keyword.value, quiet=True)
 
-    def _text(self, node, keyword):
+    def _text(self, node, keyword, context=""):
         text = _constant(keyword.value)
         if text is not None:
-            self.x.add(text, "", self.path, node.lineno)
+            self.x.add(text, context, self.path, node.lineno)
             return
         # 三元表达式之类仍可能含可翻译字面量，例如 text="Remove" if on else "Add"。
         found = list(_constants(keyword.value))
         for literal in found:
-            self.x.add(literal, "", self.path, node.lineno)
+            self.x.add(literal, context, self.path, node.lineno)
         if found:
             self.x.problem(self.path, node.lineno, "text= 含动态文本，只抽取了其中的字面量")
         else:

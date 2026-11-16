@@ -81,7 +81,9 @@ class ExtractTests(unittest.TestCase):
         self.assertIn(("", "Finished"), entries)
         self.assertIn(("", "Demo Panel"), entries)
         self.assertIn(("", "Hello world"), entries)
-        self.assertIn(("", "Do it now"), entries)
+        # operator 按钮的 text= 按 Operator 上下文登记，属性和 label 仍是默认上下文。
+        self.assertIn(("Operator", "Do it now"), entries)
+        self.assertNotIn(("", "Do it now"), entries)
         self.assertIn(("", "Demo Value"), entries)
 
     def test_pgettext(self):

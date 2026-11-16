@@ -447,7 +447,13 @@ class PC_OT_pick_context(bpy.types.Operator):
     bl_description = "从当前文件已有的上下文里选一个；可输入过滤，也能手填"
     bl_property = "value"
 
-    value: bpy.props.EnumProperty(name="上下文", items=_context_items)
+    # 这些选项名是给译者看的原始 msgctxt，必须原样显示；指定一个私有翻译上下文，
+    # 让 Blender 的界面翻译（pgettext）查不到词条，从而不被翻成“操作项/面板”等。
+    value: bpy.props.EnumProperty(
+        name="上下文",
+        items=_context_items,
+        translation_context="Perfect Chinese Context",
+    )
 
     def invoke(self, context, event):
         context.window_manager.invoke_search_popup(self)
