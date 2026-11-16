@@ -1,0 +1,31 @@
+schema_version = "1.0.0"
+
+id = "perfect_chinese"
+version = "1.0.0"
+name = "Perfect Chinese"
+tagline = "中文界面与插件汉化"
+maintainer = "KeshiMiao"
+type = "add-on"
+website = "https://github.com/KeshiMiao/perfect-chinese"
+
+blender_version_min = "4.5.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+network = "下载翻译目录与语言包；译者工具调用 DeepSeek 翻译时会发送选中的词条"
+files = "在本地缓存目录读写翻译文件"
+
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/.venv/",
+  "/.vscode/",
+  "/.env*",
+  "/.gitignore",
+  "/data/",
+  "/tests/",
+  "/*.zip",
+  "*.pyc",
+  ".DS_Store",
+]

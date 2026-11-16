@@ -1,45 +1,38 @@
-# 完美中文
-完美中文是一款用于汉化 Blender 插件的插件。
+# 完美中文（Perfect Chinese）
 
-> 正在重构，设计见 [doc/requirements.md](doc/requirements.md)。
-#### # 目前完成的功能
-- [x] 全局翻译: 完善部分 Blender 的翻译
-- [x] 一键翻译: 一键切换中英文的快捷按钮
-- [x] 插件汉化: 目标插件的汉化
-- [x] 更新插件: 检查和更新当前插件
-- [x] 界面搜索：插件汉化界面的搜索功能
-- [x] 工作模式: 普通模式和高级模式
-#### # 正在开发中的功能
-- [ ] 译者工具：一系列帮助译者高效翻译的工具
-#### # 未来要实现的功能
-- [ ] 智能模式: 根据开启的插件自动加载合适的翻译模块
-- [ ] 强制翻译: 强制翻译字典无效的翻译 (代码替换)
-- [ ] 快捷入口：便捷的插件侧边栏入口
-#### # 目前完成翻译的插件
- 名称                     | 译名              | 译者 | 推荐版本
---------------------------|-------------------|------|-----------
- blender                  | 全局翻译          | 可是 | 2.83
- 3D Navigation            | 3D 视图导航       | 可是 | 1.2.5
- Animation Nodes          | 动画节点          | 可是 | 2.1.7
- BlenderKit Asset Library | BlenderKit 资产库 | 可是 | 1.0.30
- Bool Tool                | 布尔工具          | 可是 | 0.4.1
- BoxCutter                | 布尔切割          | 可是 | 7.16.11
- Drop It                  | 落下它            | 可是 | 1.1
- EdgeFlow                 | 边流动            | 可是 | 0.5
- Hard Ops 9               | 硬表面建模        | 可是 | 0.9.86.14
- Import Images as Planes  | 导入图像为平面    | 可是 | 3.3.1
- MACHIN3tools             | MACHINE3 工具     | 可是 | 0.6.0
- Materialiq               | 材质链接库        | 可是 | 2.8.1
- MeasureIt                | 测量              | 可是 | 1.8.1
- MeasureIt_ARCH           | 测量尺            | 可是 | 0.4.6
- MESHmachine              | 建模插件          | 可是 | 0.6.9
- Mixer                    | 混合器            | 可是 | 1.5.0
- Modifier List            | 修改器列表        | 可是 | 1.5.6
- Node Arrange             | 节点整理          | 可是 | 0.2.2
- Node Presets             | 节点预设          | 可是 | 1.1
- Node Wrangler            | 节点牧人          | 可是 | 3.36
- LoopTools                | Loop 工具         | 可是 | 4.7.3
-#### # 正在翻译中的插件
-- [ ] Bezier Utilities
-#### # 目前已知的漏洞
-- [ ] Mac 版本和 Linux 版本使用更新器中文乱码 (暂无法复现)
+给 Blender 用的中文界面与插件汉化扩展。插件本体与翻译内容解耦：本仓库只放客户端，译文与目录在独立仓库
+[perfect-chinese-translations](https://github.com/KeshiMiao/perfect-chinese-translations)。
+
+## 功能
+
+- **一键中英切换**：顶栏的【中文 / English】按钮，在 `zh_HANS` 与你的原语言之间切换，立即生效；工具提示、
+  新建数据名、报告、工作区标题可一并联动，关掉插件时还原。
+- **翻译列表**：搜索、下载、启用、更新、卸载；支持「仅启用 / 仅下载 / 待更新 / 仅本地」筛选，单项与全部更新。
+- **主程序补缺包**：补齐 Blender 官方缺译的中文词条，按 4.5 与 5.x 分开；首次联网自动下载并启用。
+- **本地译文**：工作区里的 `.po` 以【本地】条目并入列表，勾选即启用。
+- **双语模式**：插件词条显示「译文 | 原文」，分隔符可配，默认关闭。
+- **译者工具**（默认关闭）：3D 视图侧边栏的【译者工具】标签（【抽取】【翻译】【选项】三个面板），
+  抽取插件文本、编辑译文、实时预览，可用 DeepSeek 自动翻译未译条目。
+
+## 安装
+
+支持 Blender **4.5 LTS 与 5.x**（最低 4.5.0）。
+
+- 下载发布页的 zip，在 偏好设置 → 获取扩展 → 从磁盘安装。
+- 或从源码安装：把 `perfect_chinese/` 放进 `extensions/user_default/`，也可以用
+  `blender --command extension build` 打包后再安装。
+
+装好后在 偏好设置 → 扩展 → 完美中文 里有三页：【翻译列表】【选项和配置】【更新和关于】。
+
+## 使用
+
+1. 打开 Blender 偏好设置的「联网访问」开关（默认关闭），再到【翻译列表】点【检查更新】拉取目录。
+2. 勾选条目即启用，无需重启；顶栏【中文 / English】按钮切换中英。
+3. 翻译缓存默认放在 Blender 用户数据目录，可在【选项和配置】里改到别处，清空即回默认。
+
+翻译内容不在这个仓库；想补译或报错，请到
+[perfect-chinese-translations](https://github.com/KeshiMiao/perfect-chinese-translations) 提 issue 或 PR。
+
+## 许可
+
+GPL-3.0-or-later，见 [LICENSE](LICENSE)。
