@@ -162,6 +162,21 @@ class PC_OT_list_page(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class PC_OT_set_filter(bpy.types.Operator):
+    bl_idname = "pc.set_filter"
+    bl_label = "筛选翻译列表"
+    bl_description = "只显示某一类译文"
+
+    mode: bpy.props.StringProperty()
+
+    def execute(self, context):
+        prefs = env.addon_prefs()
+        if prefs is None:
+            return {"CANCELLED"}
+        prefs.list_filter = self.mode
+        return {"FINISHED"}
+
+
 class PC_OT_extract_texts(bpy.types.Operator):
     bl_idname = "pc.extract_texts"
     bl_label = "抽取插件文本"
@@ -386,6 +401,7 @@ _classes = (
     PC_OT_uninstall,
     PC_OT_toggle_expanded,
     PC_OT_list_page,
+    PC_OT_set_filter,
     PC_OT_extract_texts,
     PC_OT_preview_texts,
     PC_OT_toggle_language,

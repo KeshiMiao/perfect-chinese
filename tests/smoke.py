@@ -81,9 +81,15 @@ def stage_one(view):
     check("偏好含三个标签页", [i.identifier for i in prefs.bl_rna.properties["tabs"].enum_items] == ["LIST", "OPTIONS", "UPDATE"])
     check("翻译列表已移出侧边栏", not hasattr(bpy.types, "VIEW3D_PT_perfect_chinese_translate"))
     check("偏好含搜索与双语", hasattr(prefs, "search") and hasattr(prefs, "bilingual"))
-    check("偏好含列表筛选", all(hasattr(prefs, name) for name in ("list_only_enabled", "list_only_downloaded", "list_only_updatable")))
+    check(
+        "列表筛选是六选一",
+        [i.identifier for i in prefs.bl_rna.properties["list_filter"].enum_items]
+        == ["RECOMMEND", "ALL", "ENABLED", "DOWNLOADED", "UPDATABLE", "LOCAL"],
+    )
+    check("列表默认显示推荐", prefs.list_filter == "RECOMMEND", prefs.list_filter)
     check("偏好含缓存目录", hasattr(prefs, "cache_path"))
     check("存在全部更新运算符", "update_all" in dir(bpy.ops.pc))
+    check("存在筛选运算符", "set_filter" in dir(bpy.ops.pc))
     check("偏好含 DeepSeek 设置", all(hasattr(prefs, name) for name in ("deepseek_key", "deepseek_model", "deepseek_ack")))
     check("DeepSeek 模型是 flash / pro", [i.identifier for i in prefs.bl_rna.properties["deepseek_model"].enum_items] == ["deepseek-flash", "deepseek-v4-pro"])
     check("不再有风格提示", not hasattr(prefs, "deepseek_style"))

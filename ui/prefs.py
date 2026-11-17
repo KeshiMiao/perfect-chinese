@@ -127,28 +127,18 @@ class PerfectChinesePreferences(bpy.types.AddonPreferences):
         default="",
         options={"HIDDEN"},
     )
-    list_only_enabled: bpy.props.BoolProperty(
-        name="仅启用",
-        description="只显示当前已启用的翻译",
-        default=False,
-        update=_reset_list_page,
-    )
-    list_only_downloaded: bpy.props.BoolProperty(
-        name="仅下载",
-        description="只显示已经下载的翻译",
-        default=False,
-        update=_reset_list_page,
-    )
-    list_only_updatable: bpy.props.BoolProperty(
-        name="待更新",
-        description="只显示有新内容、可以更新的翻译",
-        default=False,
-        update=_reset_list_page,
-    )
-    list_only_local: bpy.props.BoolProperty(
-        name="仅本地",
-        description="只显示译者工具产出的本地译文",
-        default=False,
+    list_filter: bpy.props.EnumProperty(
+        name="筛选",
+        description="选择翻译列表显示哪一类条目",
+        items=[
+            ("RECOMMEND", "推荐", "已下载或已启用的译文、已安装插件的译文、本地自译"),
+            ("ALL", "全部", "目录里的全部译文"),
+            ("ENABLED", "仅启用", "当前已启用的译文"),
+            ("DOWNLOADED", "仅下载", "已经下载到本机的译文"),
+            ("UPDATABLE", "待更新", "已下载且目录里有新版本的译文"),
+            ("LOCAL", "仅本地", "译者工具产出的本地译文"),
+        ],
+        default="RECOMMEND",
         update=_reset_list_page,
     )
     cache_stored: bpy.props.StringProperty(
