@@ -133,8 +133,8 @@ class PerfectChinesePreferences(bpy.types.AddonPreferences):
         items=[
             ("RECOMMEND", "推荐", "已下载或已启用的译文、已安装插件的译文、本地自译"),
             ("ALL", "全部", "目录里的全部译文"),
-            ("ENABLED", "仅启用", "当前已启用的译文"),
-            ("DOWNLOADED", "仅下载", "已经下载到本机的译文"),
+            ("ENABLED", "已启用", "当前已启用的译文"),
+            ("DOWNLOADED", "已下载", "已经下载到本机的译文"),
             ("UPDATABLE", "待更新", "已下载且目录里有新版本的译文"),
             ("LOCAL", "仅本地", "译者工具产出的本地译文"),
         ],
