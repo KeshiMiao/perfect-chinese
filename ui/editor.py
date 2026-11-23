@@ -25,6 +25,23 @@ def _editor_of(context=None):
     return getattr(scene, "pc_editor", None)
 
 
+def same_editor(editor, module):
+    """判断回调回来时表格还是当初那一个，且仍打开同一个文件。
+
+    Blender 每次访问属性都新建 Python 包装（`scene.pc_editor is scene.pc_editor`
+    是 False），只能比较 RNA 指针。
+    """
+    current = _editor_of()
+    if current is None or editor is None:
+        return False
+    try:
+        if current.as_pointer() != editor.as_pointer():
+            return False
+        return current.module == module
+    except ReferenceError:
+        return False
+
+
 # 上下文补全的兜底候选：当前 .po 里出现过的之外，再补 Blender 常见的几类。
 COMMON_CONTEXTS = (
     "Operator",
@@ -520,7 +537,7 @@ class PC_OT_deepseek(bpy.types.Operator):
             return translator.translate(payload, key, model=model)
 
         def done(result, error):
-            if _editor_of() is not editor or editor.module != module:
+            if not same_editor(editor, module):
                 # 用户已经切到别的文件：结果不能写进新文件的表格
                 return
             if error is not None:

@@ -245,6 +245,9 @@ def stage_one(view):
     result_open = bpy.ops.pc.edit_texts(module="bl_ext.user_default.perfect_chinese")
     editor = bpy.context.scene.pc_editor
     check("编辑器打开", result_open == {"FINISHED"} and len(editor.items) == len(entries), str(result_open))
+    from bl_ext.user_default.perfect_chinese.ui import editor as editor_ui
+    check("回调用 RNA 指针认同一张表格", editor_ui.same_editor(editor, editor.module))
+    check("换了文件就不算同一张表格", not editor_ui.same_editor(editor, "other.module"))
     check("旧编辑器面板已下线", not hasattr(bpy.types, "VIEW3D_PT_perfect_chinese_editor"))
     check("侧边栏三栏已注册", all(hasattr(bpy.types, name) for name in ("VIEW3D_PT_pc_extract", "VIEW3D_PT_pc_translate", "VIEW3D_PT_pc_options")))
     check("偏好含工作区标题开关", hasattr(prefs, "translate_workspaces"))
