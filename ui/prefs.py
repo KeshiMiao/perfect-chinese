@@ -280,15 +280,23 @@ class PerfectChinesePreferences(bpy.types.AddonPreferences):
         version_row = update_box.row()
         version_row.label(text="当前版本： %s" % env.addon_version())
         result = update_check.CLIENT_RESULT
+        newest = bool(result.get("latest")) and versions.compare(result["latest"], env.addon_version()) > 0
         if result.get("error"):
             update_box.label(text="检查失败：%s" % result["error"], icon="ERROR")
         elif result.get("latest"):
-            if versions.compare(result["latest"], env.addon_version()) > 0:
+            if newest:
                 update_box.label(text="有新版本 %s" % result["latest"], icon="SORT_DESC")
             else:
                 update_box.label(text="已是最新版本", icon="CHECKMARK")
+        if newest and not result.get("download"):
+            update_box.label(text="这个发行版没有上传安装包，请打开发布页下载", icon="INFO")
+        if result.get("note"):
+            update_box.label(text=result["note"], icon="INFO")
         update_actions = update_box.row(align=True)
-        update_actions.operator("pc.check_client_update", text="检查更新", icon="URL")
+        if newest and not result.get("installed"):
+            update_actions.operator("pc.update_client", text="更新版本", icon="IMPORT")
+        else:
+            update_actions.operator("pc.check_client_update", text="检查更新", icon="URL")
         update_actions.operator("pc.open_release_page", text="打开发布页", icon="BLENDER")
 
         about_box = layout.box()

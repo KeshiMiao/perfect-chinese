@@ -5,7 +5,7 @@ import os
 import bpy
 
 from ..core import env, net, packages, workspace as core_workspace
-from ..services import language, translator, translations, update_check, workspace
+from ..services import client_update, language, translator, translations, update_check, workspace
 
 
 def _background(work, label, apply=None):
@@ -292,6 +292,50 @@ class PC_OT_check_client_update(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class PC_OT_update_client(bpy.types.Operator):
+    bl_idname = "pc.update_client"
+    bl_label = "更新版本"
+    bl_description = "下载并安装新版本；装好后重启 Blender 生效"
+
+    def execute(self, context):
+        info = update_check.CLIENT_RESULT
+        url = info.get("download") or ""
+        latest = info.get("latest") or ""
+        if not url:
+            self.report({"ERROR"}, "这个发行版没有上传安装包，请打开发布页手动下载")
+            return {"CANCELLED"}
+        if info.get("installed"):
+            self.report({"INFO"}, "已经装好 %s，重启 Blender 后生效" % info["installed"])
+            return {"CANCELLED"}
+        update_check.set_note("正在下载 %s…" % (latest or "新版本"))
+        translations.redraw()
+
+        def work():
+            return client_update.download_zip(url)
+
+        def done(path, error):
+            if error is not None:
+                update_check.set_note("更新失败：%s" % error)
+                translations.redraw()
+                return
+            try:
+                result = client_update.install(path)
+            except Exception as exc:
+                update_check.set_note("安装失败：%s" % exc)
+            else:
+                if result == {"FINISHED"}:
+                    info["installed"] = latest or "新版本"
+                    update_check.set_note("已安装 %s，重启 Blender 后生效" % info["installed"])
+                else:
+                    update_check.set_note("安装没有完成：%s" % (sorted(result),))
+            finally:
+                client_update.cleanup(path)
+            translations.redraw()
+
+        net.run_in_background(work, done)
+        return {"FINISHED"}
+
+
 class PC_OT_open_release_page(bpy.types.Operator):
     bl_idname = "pc.open_release_page"
     bl_label = "打开发布页"
@@ -407,6 +451,7 @@ _classes = (
     PC_OT_toggle_language,
     PC_OT_test_deepseek,
     PC_OT_check_client_update,
+    PC_OT_update_client,
     PC_OT_open_release_page,
     PC_OT_open_workspace,
     PC_OT_remove_local,

@@ -108,5 +108,51 @@ class SyncTests(unittest.TestCase):
         self.assertTrue(result.error)
 
 
+class ClientTests(unittest.TestCase):
+    def setUp(self):
+        self._orig_online = net.online_enabled
+        self._orig_fetch = net._fetch_once
+        net.online_enabled = lambda: True
+
+    def tearDown(self):
+        net.online_enabled = self._orig_online
+        net._fetch_once = self._orig_fetch
+
+    def respond(self, payload):
+        data = json.dumps(payload).encode("utf-8")
+        net._fetch_once = lambda url, timeout, max_bytes, request_headers=None: (data, {})
+
+    def test_finds_zip_asset(self):
+        self.respond(
+            {
+                "tag_name": "v1.2.0",
+                "html_url": "https://example.com/release",
+                "assets": [
+                    {"name": "notes.txt", "browser_download_url": "https://example.com/notes.txt"},
+                    {"name": "perfect_chinese_1.2.0.zip", "browser_download_url": "https://example.com/a.zip"},
+                ],
+            }
+        )
+        result = update_check.check_client()
+        self.assertEqual(result["latest"], "1.2.0")
+        self.assertEqual(result["download"], "https://example.com/a.zip")
+
+    def test_release_without_asset(self):
+        self.respond({"tag_name": "1.2.0", "assets": []})
+        result = update_check.check_client()
+        self.assertEqual(result["latest"], "1.2.0")
+        self.assertEqual(result["download"], "")
+
+    def test_missing_assets_key(self):
+        self.respond({"tag_name": "1.2.0"})
+        self.assertEqual(update_check.check_client()["download"], "")
+
+    def test_note_survives_result_update(self):
+        update_check.set_note("正在下载…")
+        update_check.remember_client({"latest": "1.2.0", "download": "u"})
+        self.assertEqual(update_check.CLIENT_RESULT["note"], "")
+        self.assertEqual(update_check.CLIENT_RESULT["download"], "u")
+
+
 if __name__ == "__main__":
     unittest.main()

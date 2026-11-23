@@ -15,6 +15,7 @@ MIRRORS = ()
 CACHE_TTL = 24 * 60 * 60
 CLIENT_RELEASES = "https://api.github.com/repos/KeshiMiao/perfect-chinese/releases/latest"
 CLIENT_PAGE = "https://github.com/KeshiMiao/perfect-chinese/releases"
+CLIENT_ASSET_SUFFIX = ".zip"
 
 
 class SyncResult:
@@ -127,22 +128,31 @@ def _decode(data):
 
 
 def check_client():
-    """查客户端最新版本；只返回信息，不下载（D9）。"""
-    import json
+    """查客户端最新版本；只返回信息，不下载（D9）。
 
-    from ..core import net
+    顺便找出这个发行版里的安装包地址，供「更新版本」按钮直接下载。
+    """
+    import json
 
     response = net.fetch(CLIENT_RELEASES)
     payload = json.loads(response.data.decode("utf-8"))
     tag = str(payload.get("tag_name", "")).strip()
+    download = ""
+    for asset in payload.get("assets") or []:
+        if not isinstance(asset, dict):
+            continue
+        if str(asset.get("name", "")).lower().endswith(CLIENT_ASSET_SUFFIX):
+            download = str(asset.get("browser_download_url", ""))
+            break
     return {
         "latest": tag[1:] if tag[:1] in ("v", "V") else tag,
         "name": payload.get("name", ""),
         "url": payload.get("html_url", CLIENT_PAGE),
+        "download": download,
     }
 
 
-CLIENT_RESULT = {"latest": "", "url": CLIENT_PAGE, "error": ""}
+CLIENT_RESULT = {"latest": "", "url": CLIENT_PAGE, "download": "", "installed": "", "error": "", "note": ""}
 
 
 def remember_client(result=None, error=None):
@@ -150,5 +160,11 @@ def remember_client(result=None, error=None):
     if result:
         CLIENT_RESULT.update(result)
         CLIENT_RESULT["error"] = ""
+        CLIENT_RESULT["note"] = ""
     if error is not None:
         CLIENT_RESULT["error"] = str(error)
+
+
+def set_note(message=""):
+    """更新过程中的提示，显示在「更新和关于」页。"""
+    CLIENT_RESULT["note"] = message or ""

@@ -94,6 +94,9 @@ def stage_one(view):
     check("DeepSeek 模型是 flash / pro", [i.identifier for i in prefs.bl_rna.properties["deepseek_model"].enum_items] == ["deepseek-flash", "deepseek-v4-pro"])
     check("不再有风格提示", not hasattr(prefs, "deepseek_style"))
     check("存在 DeepSeek 翻译与测试运算符", "deepseek" in dir(bpy.ops.pc) and "test_deepseek" in dir(bpy.ops.pc))
+    check("存在更新版本运算符", "update_client" in dir(bpy.ops.pc))
+    from bl_ext.user_default.perfect_chinese.services import client_update
+    check("能认出当前扩展仓库", client_update.repo_id() == "user_default", client_update.repo_id())
 
     from bl_ext.user_default.perfect_chinese.core import official
     check("能读官方目录", official.catalog() is not None)
