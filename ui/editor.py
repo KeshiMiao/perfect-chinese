@@ -10,6 +10,9 @@ from ..services import translator, translations, workspace as workspace_service
 AUTOSAVE_DELAY = 0.6
 _AUTOSAVE = {"timer": None}
 
+# 翻译在后台线程跑，进度只写这个字典；主线程的定时器负责更新状态行。
+_TRANSLATE = {"active": False, "done": 0, "total": 0, "module": ""}
+
 # 当前注册的预览域，切换文件 / 删除工作区 .po / 卸载插件时用它注销
 _PREVIEW = {"name": ""}
 
@@ -89,6 +92,22 @@ def _autosave():
         editor.status = "自动保存失败：%s" % exc
     _redraw_all()
     return None
+
+
+def _translate_progress(done, total):
+    """后台线程调用：只记录进度，不碰界面数据。"""
+    _TRANSLATE["done"] = done
+    _TRANSLATE["total"] = total
+
+
+def _translate_tick():
+    if not _TRANSLATE["active"]:
+        return None
+    editor = _editor_of()
+    if editor is not None and editor.module == _TRANSLATE["module"]:
+        editor.status = "正在翻译 %d/%d 条…" % (_TRANSLATE["done"], _TRANSLATE["total"])
+        _redraw_all()
+    return 0.55
 
 
 def _meta_changed(editor, context):
@@ -524,19 +543,22 @@ class PC_OT_deepseek(bpy.types.Operator):
         if not targets:
             self.report({"INFO"}, "没有需要翻译的词条")
             return {"CANCELLED"}
-        if len(targets) > translator.MAX_ITEMS:
-            self.report({"ERROR"}, "一次最多 %d 条，请先筛选" % translator.MAX_ITEMS)
-            return {"CANCELLED"}
 
+        if _TRANSLATE["active"]:
+            self.report({"ERROR"}, "上一轮翻译还没结束，请稍候")
+            return {"CANCELLED"}
         payload = [{"msgid": item.msgid, "msgctxt": item.msgctxt} for _, item in targets]
         editor.status = "正在翻译 %d 条…" % len(payload)
+        _TRANSLATE.update(active=True, done=0, total=len(payload), module=editor.module)
+        bpy.app.timers.register(_translate_tick, first_interval=0.55)
         key, model = prefs.deepseek_key, prefs.deepseek_model
         module = editor.module
 
         def work():
-            return translator.translate(payload, key, model=model)
+            return translator.translate(payload, key, model=model, progress=_translate_progress)
 
         def done(result, error):
+            _TRANSLATE["active"] = False
             if not same_editor(editor, module):
                 # 用户已经切到别的文件：结果不能写进新文件的表格
                 return

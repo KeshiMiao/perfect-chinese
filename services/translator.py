@@ -11,8 +11,11 @@ from ..core import net
 API_URL = "https://api.deepseek.com/chat/completions"
 DEFAULT_MODEL = "deepseek-flash"
 MODELS = ("deepseek-flash", "deepseek-v4-pro")
-BATCH = 20
-MAX_ITEMS = 400
+BATCH = 500
+
+# 一次请求的译文再加 JSON 包装，输出 token 很容易超过模型默认的 4096；
+# 按估算体积再切小，宁可多请求几次，也不让返回被截断、白花 token。
+OUTPUT_BUDGET = 3500
 
 SYSTEM = (
     "你是 Blender 界面的简体中文译者。把用户给的英文界面词条译成中文。"
@@ -92,27 +95,83 @@ def parse_response(data, count):
     return result
 
 
-def translate(items, key, model=DEFAULT_MODEL, post=None, batch=BATCH, progress=None):
-    """逐批翻译，返回与 items 等长的译文字符串列表。
+def _request(sender, chunk, key, model):
+    """发一批；网络错误包成 TranslatorError，返回解析后的译文。"""
+    payload = build_payload(chunk, model=model)
+    try:
+        data = sender(API_URL, payload, headers={"Authorization": "Bearer %s" % key.strip()})
+    except net.NetworkError as exc:
+        raise TranslatorError(str(exc)) from None
+    return parse_response(data, len(chunk))
 
+
+def _splittable(exc):
+    """模型输出被截断（少条目 / 不是 JSON）或超时时，可以拆小重试。"""
+    text = str(exc)
+    return (
+        "没有译文" in text
+        or "不是 JSON" in text
+        or "没有 translations" in text
+        or "超时" in text
+        or "timed out" in text.lower()
+    )
+
+
+def _estimate(item):
+    """粗略估算一条译文占的输出字符数（含 JSON 的 i/zh 包装）。"""
+    return len(item.get("msgid") or "") + len(item.get("msgctxt") or "") + 16
+
+
+def _plan_chunks(items, max_items=BATCH, max_chars=OUTPUT_BUDGET):
+    """按条数上限与输出体积切批：条数多或词条长都会自动多切几批。"""
+    pending = []
+    start = 0
+    size = 0
+    for index, item in enumerate(items):
+        cost = _estimate(item)
+        if index > start and (index - start >= max_items or size + cost > max_chars):
+            pending.append((start, index))
+            start, size = index, 0
+        size += cost
+    if start < len(items):
+        pending.append((start, len(items)))
+    return pending
+
+
+def translate(items, key, model=DEFAULT_MODEL, post=None, batch=BATCH, progress=None):
+    """自动分批翻译，返回与 items 等长的译文字符串列表。
+
+    每批最多 batch 条；一批的输出被截断时对半拆开重试，所以条数不设上限。
     `post` 可注入，便于测试；默认用 core.net.post_json。
     """
     if not key.strip():
         raise TranslatorError("还没有填 DeepSeek API Key")
     if model not in MODELS:
         raise TranslatorError("不支持的模型：%s" % model)
-    if len(items) > MAX_ITEMS:
-        raise TranslatorError("一次最多 %d 条" % MAX_ITEMS)
-    sender = post or net.post_json
-    result = []
-    for start in range(0, len(items), batch):
-        chunk = items[start:start + batch]
-        payload = build_payload(chunk, model=model)
+    if post is None:
+        def sender(url, payload, headers=None):
+            # 按体积切小后每批约 40–80 条，120 秒足够；超时会被拆得更小重试
+            return net.post_json(url, payload, headers=headers, timeout=120)
+    else:
+        sender = post
+    result = [None] * len(items)
+    pending = _plan_chunks(items, max_items=batch)
+    done = 0
+    while pending:
+        start, end = pending.pop(0)
+        chunk = items[start:end]
         try:
-            data = sender(API_URL, payload, headers={"Authorization": "Bearer %s" % key.strip()})
-        except net.NetworkError as exc:
-            raise TranslatorError(str(exc)) from None
-        result.extend(parse_response(data, len(chunk)))
+            texts = _request(sender, chunk, key, model)
+        except TranslatorError as exc:
+            if end - start > 1 and _splittable(exc):
+                middle = (start + end) // 2
+                pending.insert(0, (middle, end))
+                pending.insert(0, (start, middle))
+                continue
+            raise
+        for index, text in zip(range(start, end), texts):
+            result[index] = text
+        done += end - start
         if progress is not None:
-            progress(len(result), len(items))
+            progress(done, len(items))
     return result

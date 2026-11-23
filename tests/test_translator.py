@@ -101,10 +101,47 @@ class TranslateTests(unittest.TestCase):
         with self.assertRaises(translator.TranslatorError):
             translator.translate([{"msgid": "X"}], "key", model="gpt")
 
-    def test_too_many(self):
-        items = [{"msgid": "X%d" % i} for i in range(translator.MAX_ITEMS + 1)]
-        with self.assertRaises(translator.TranslatorError):
-            translator.translate(items, "key")
+    def test_large_batch_auto_splits(self):
+        calls = []
+
+        def post(url, payload, headers=None):
+            rows = json.loads(payload["messages"][1]["content"])["items"]
+            calls.append(len(rows))
+            return reply([{"i": row["i"], "zh": "译" + row["text"]} for row in rows])
+
+        items = [{"msgid": "X%d" % i} for i in range(1200)]
+        result = translator.translate(items, "key", post=post)
+        self.assertEqual(len(result), 1200)
+        self.assertEqual(sum(calls), 1200)
+        self.assertGreater(len(calls), 1)
+        self.assertTrue(all(size <= translator.BATCH for size in calls))
+
+    def test_progress_reports_done_and_total(self):
+        seen = []
+
+        def post(url, payload, headers=None):
+            rows = json.loads(payload["messages"][1]["content"])["items"]
+            return reply([{"i": row["i"], "zh": "译" + row["text"]} for row in rows])
+
+        items = [{"msgid": "P%d" % i} for i in range(30)]
+        translator.translate(items, "key", post=post, batch=10,
+                             progress=lambda done, total: seen.append((done, total)))
+        self.assertEqual(seen, [(10, 30), (20, 30), (30, 30)])
+
+    def test_truncated_reply_splits_and_retries(self):
+        calls = []
+
+        def post(url, payload, headers=None):
+            rows = json.loads(payload["messages"][1]["content"])["items"]
+            calls.append(len(rows))
+            if len(rows) > 1:
+                return reply([{"i": 1, "zh": "截断"}])
+            return reply([{"i": 1, "zh": "好"}])
+
+        items = [{"msgid": "Y%d" % i} for i in range(4)]
+        result = translator.translate(items, "key", post=post)
+        self.assertEqual(result, ["好", "好", "好", "好"])
+        self.assertEqual(calls, [4, 2, 1, 1, 2, 1, 1])
 
 
 if __name__ == "__main__":
